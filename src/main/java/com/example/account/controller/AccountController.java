@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -66,6 +66,8 @@ public class AccountController {
         else
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
+
+
 
 
     @PutMapping("/accounts/{accountNo}/deposit/{amount}")
@@ -183,6 +185,20 @@ public class AccountController {
         } else
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Could not delete. Account with account number " + accountNo + " does not exist.");
 
+    }
+    
+    @DeleteMapping("/accounts/customer-accounts/{customerNo}")
+    public Void deleteAccountsofCustomer(
+            @PathVariable Integer customerNo
+    ){
+        List<AccountResponse> account = accountService.findAccountByCustomerNo(customerNo);
+        
+        if (account.isEmpty()){
+            return null;
+        }
+        else {
+            return accountService.deleteAccountByCustomerNo(customerNo);
+        }
     }
 
 }
