@@ -89,4 +89,8 @@ public class AccountService {
         accountRepository.saveBalanceByAccountNo(destAccountNo, amount);
 
     }
+
+    public List<Integer> getAccountNo() {
+        return accountRepository.findAllAccountNo();
+    }
 }

@@ -43,6 +43,11 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account with account number " + accountNo + " not found.");
     }
 
+    @GetMapping("/accounts/numbers")
+    public List<Integer> getAllAccountNo(){
+        return accountService.getAccountNo();
+    }
+
     @GetMapping("/accounts/customer-accounts/{customerNo}")
     public Object[] getCustomerAccountByCustomerNo(
             @PathVariable Integer customerNo

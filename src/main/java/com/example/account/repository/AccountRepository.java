@@ -150,6 +150,6 @@ public interface AccountRepository extends CrudRepository<AccountResponse, Integ
     @Query("update AccountResponse set balanceInEuro = balanceInEuro-?2 where accountNo=?1")
     public void withdrawAmountByAccountNo(Integer accountNo, Double amount);
 
-
-
+    @Query("select accountNo from AccountResponse")
+    List<Integer> findAllAccountNo();
 }
