@@ -3,6 +3,9 @@ package com.example.account.controller;
 import com.example.account.model.AccountCreateRequest;
 import com.example.account.model.AccountResponse;
 import com.example.account.service.AccountService;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.iban4j.CountryCode;
 import org.iban4j.Iban;
 import org.springframework.http.HttpStatus;
@@ -26,14 +29,17 @@ public class AccountController {
 
     }
 
+    @Operation(summary = "Get all accounts")
     @GetMapping("/accounts")
     public List<AccountResponse> getAllAccounts() {
 
         return accountService.findAllAccounts();
     }
 
+    @Operation(summary = "Find account by account number")
     @GetMapping("/accounts/{accountNo}")
     public ResponseEntity<Object> getAccountByAccountNo(
+            @Parameter(description = "account number of account to be found")
             @PathVariable Integer accountNo
     ) {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
@@ -43,13 +49,16 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account with account number " + accountNo + " not found.");
     }
 
+    @Hidden
     @GetMapping("/accounts/numbers")
     public List<Integer> getAllAccountNo(){
         return accountService.getAccountNo();
     }
 
+    @Operation(summary = "Get all accounts of a customer")
     @GetMapping("/accounts/customer-accounts/{customerNo}")
     public Object[] getCustomerAccountByCustomerNo(
+            @Parameter(description = "Customer number of customer to find all accounts")
             @PathVariable Integer customerNo
     ) {
         String empty = "Either customer with customer number " + customerNo + " does not exist or the customer has no accounts.";
@@ -61,6 +70,7 @@ public class AccountController {
 
     }
 
+    @Hidden
     @GetMapping("/accounts/{accountNo}/balance")
     public ResponseEntity<Double> getBalanceInEuro(
             @PathVariable Integer accountNo
@@ -75,9 +85,12 @@ public class AccountController {
 
 
 
+    @Operation(summary = "Deposit an amount into an account")
     @PutMapping("/accounts/{accountNo}/deposit/{amount}")
     public ResponseEntity<String> depositAmount(
+            @Parameter(description = "Account number of account")
             @PathVariable Integer accountNo,
+            @Parameter(description = "Amount for deposit")
             @PathVariable Double amount
     ) {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
@@ -92,9 +105,12 @@ public class AccountController {
 
     }
 
+    @Operation(summary = "Withdraw an amount from an account")
     @PutMapping("/accounts/{accountNo}/withdraw/{amount}")
     public ResponseEntity<String> withdrawAmount(
+            @Parameter(description = "Account number of account")
             @PathVariable Integer accountNo,
+            @Parameter(description = "Amount for withdrawal")
             @PathVariable Double amount
     ) {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
@@ -116,10 +132,14 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Withdraw amount failed. Account with account number " + accountNo + " does not exist.");
     }
 
+    @Operation(summary = "Transfer amount from one account to another account")
     @PutMapping("/accounts/{accountNo}/transfer/{destAccountNo}/{amount}")
     public ResponseEntity<String> transferAmount(
+            @Parameter(description = "Account number of transferring account")
             @PathVariable Integer accountNo,
+            @Parameter(description = "Account number of receiving account")
             @PathVariable Integer destAccountNo,
+            @Parameter(description = "Amount for bank transfer")
             @PathVariable Double amount
     ) {
         Optional<AccountResponse> account1 = accountService.findByAccountNo(accountNo);
@@ -156,9 +176,11 @@ public class AccountController {
 
     }
 
+    @Operation(summary = "Create an account")
     @PostMapping("/accounts")
     public AccountResponse createAccount(
-            @RequestBody AccountCreateRequest aRequest
+            @Parameter(description = "Customer number of customer to allocate")
+            @RequestParam AccountCreateRequest aRequest
     ) {
         Iban iban = new Iban.Builder()
                 .countryCode(CountryCode.DE)
@@ -176,8 +198,10 @@ public class AccountController {
 
     }
 
+    @Operation(summary = "Delete an account")
     @DeleteMapping("/accounts/{accountNo}")
     public ResponseEntity deleteAccount(
+            @Parameter(description = "Account number of account to delete")
             @PathVariable Integer accountNo
 
     ) {
@@ -191,9 +215,10 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Could not delete. Account with account number " + accountNo + " does not exist.");
 
     }
-    
+    @Operation(summary = "Delete all accounts of a customer")
     @DeleteMapping("/accounts/customer-accounts/{customerNo}")
     public Void deleteAccountsofCustomer(
+            @Parameter(description = "Customer number of customer to delete all accounts")
             @PathVariable Integer customerNo
     ){
         List<AccountResponse> account = accountService.findAccountByCustomerNo(customerNo);
