@@ -180,7 +180,7 @@ public class AccountController {
     @PostMapping("/accounts")
     public AccountResponse createAccount(
             @Parameter(description = "Customer number of customer to allocate")
-            @RequestParam AccountCreateRequest aRequest
+            @RequestBody AccountCreateRequest aRequest
     ) {
         Iban iban = new Iban.Builder()
                 .countryCode(CountryCode.DE)
