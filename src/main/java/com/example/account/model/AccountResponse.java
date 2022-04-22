@@ -15,7 +15,7 @@ public class AccountResponse {
     private Integer customerNo;
     private String iban;
     private Double balanceInEuro;
-    private LocalDateTime startDate;
+    private LocalDate startDate;
 
 
 
@@ -26,7 +26,7 @@ public class AccountResponse {
     }
 
     public AccountResponse(Integer customerNo, Integer accountNo, String iban,
-                           Double balanceInEuro, LocalDateTime startDate) {
+                           Double balanceInEuro, LocalDate startDate) {
         this.customerNo = customerNo;
         this.accountNo = accountNo;
         this.iban = iban;
@@ -38,6 +38,6 @@ public class AccountResponse {
     public Integer getAccountNo() { return accountNo; }
     public String getIban() { return iban; }
     public Double getBalanceInEuro() { return Math.round(balanceInEuro*100.0)/100.0; }
-    public LocalDateTime getStartDate() { return startDate; }
+    public LocalDate getStartDate() { return startDate; }
 
 }
