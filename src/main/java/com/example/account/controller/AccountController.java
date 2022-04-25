@@ -8,9 +8,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.iban4j.CountryCode;
 import org.iban4j.Iban;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 
 import java.time.LocalDate;
@@ -29,6 +31,9 @@ public class AccountController {
         this.accountService = accountService;
 
     }
+
+    @Autowired
+    RestTemplate restTemplate;
 
     @Operation(summary = "Get all accounts")
     @GetMapping("/accounts")
@@ -223,11 +228,16 @@ public class AccountController {
             @PathVariable Integer customerNo
     ){
         List<AccountResponse> account = accountService.findAccountByCustomerNo(customerNo);
+
         
         if (account.isEmpty()){
             return null;
         }
         else {
+            List<Integer> accountNo = accountService.getAccountNoOfCustomerAccounts(customerNo);
+            for (int i = 0 ; i < accountNo.size(); i++) {
+                restTemplate.delete("http://localhost:8090/api//credits/account-credits/{accountNo}", accountNo.get(i));
+            }
             return accountService.deleteAccountByCustomerNo(customerNo);
         }
     }

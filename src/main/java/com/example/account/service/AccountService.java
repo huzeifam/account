@@ -93,4 +93,9 @@ public class AccountService {
     public List<Integer> getAccountNo() {
         return accountRepository.findAllAccountNo();
     }
+
+    public List<Integer> getAccountNoOfCustomerAccounts(Integer customerNo) {
+        return accountRepository.getAccountNoOfCustomerAccounts(customerNo);
+
+    }
 }

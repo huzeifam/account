@@ -152,4 +152,7 @@ public interface AccountRepository extends CrudRepository<AccountResponse, Integ
 
     @Query("select accountNo from AccountResponse")
     List<Integer> findAllAccountNo();
+
+    @Query("select accountNo from AccountResponse where customerNo = ?1")
+    List<Integer> getAccountNoOfCustomerAccounts(Integer customerNo);
 }
