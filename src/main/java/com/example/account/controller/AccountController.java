@@ -236,8 +236,8 @@ public class AccountController {
         else {
             List<Integer> accountNo = accountService.getAccountNoOfCustomerAccounts(customerNo);
             for (int i = 0 ; i < accountNo.size(); i++) {
-                restTemplate.delete("http://localhost:8090/api//credits/account-credits/{accountNo}", accountNo.get(i));
-//                restTemplate.delete("http://credit:8090/api//credits/account-credits/{accountNo}", accountNo.get(i));
+                restTemplate.delete("http://localhost:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
+//                restTemplate.delete("http://credit:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
             }
             return accountService.deleteAccountByCustomerNo(customerNo);
         }
