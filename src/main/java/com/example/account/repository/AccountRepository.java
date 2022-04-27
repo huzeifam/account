@@ -1,6 +1,7 @@
 package com.example.account.repository;
 
 import com.example.account.model.AccountResponse;
+import com.example.account.model.Transactions;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -155,4 +156,6 @@ public interface AccountRepository extends CrudRepository<AccountResponse, Integ
 
     @Query("select accountNo from AccountResponse where customerNo = ?1")
     List<Integer> getAccountNoOfCustomerAccounts(Integer customerNo);
+
+
 }
