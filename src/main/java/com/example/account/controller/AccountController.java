@@ -2,6 +2,7 @@ package com.example.account.controller;
 
 import com.example.account.model.AccountCreateRequest;
 import com.example.account.model.AccountResponse;
+import com.example.account.model.AccountResponseEnum;
 import com.example.account.model.Transactions;
 import com.example.account.service.AccountService;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -14,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-
 
 
 import java.time.LocalDate;
@@ -58,7 +58,7 @@ public class AccountController {
                 return null;
             }
         } else
-            return new String[] {notFound};
+            return new String[]{notFound};
 
     }
 
@@ -108,8 +108,8 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    public Transactions addTransaction(Transactions transactions){
-         return accountService.save(transactions);
+    public Transactions addTransaction(Transactions transactions) {
+        return accountService.save(transactions);
 
     }
 
@@ -126,7 +126,7 @@ public class AccountController {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
         if (account.isPresent()) {
             accountService.depositAmount(accountNo, amount);
-            Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE,account.get().getAccountNo(),account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(),  "Deposit", Math.round(amount*100.0)/100.0,Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0,"-",LocalDate.now());
+            Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Deposit", Math.round(amount * 100.0) / 100.0, Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0, "-", LocalDate.now());
             addTransaction(transactions);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body("Deposit success.\n\n" +
                     "Previous balance: " + Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
@@ -148,7 +148,7 @@ public class AccountController {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
         if (account.isPresent()) {
             if (account.get().getBalanceInEuro() - amount >= 0) {
-                Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE,account.get().getAccountNo(),account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(),  "Withdraw", Math.round(amount*100.0)/100.0,Math.round((account.get().getBalanceInEuro()) * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() - amount) * 100.0) / 100.0,"-",LocalDate.now());
+                Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Withdraw", Math.round(amount * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro()) * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() - amount) * 100.0) / 100.0, "-", LocalDate.now());
                 addTransaction(transactions);
                 accountService.withdrawAmount(accountNo, amount);
                 return ResponseEntity.status(HttpStatus.ACCEPTED).body("Withdraw success.\n\n" +
@@ -184,8 +184,8 @@ public class AccountController {
             if (account2.isPresent()) {
                 if (account1.get().getAccountNo() != account2.get().getAccountNo()) {
                     if (account1.get().getBalanceInEuro() - amount >= 0) {
-                        Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE,account1.get().getAccountNo(),account1.get().getCustomerNo(),account1.get().getFirstName(),account1.get().getLastName(),"Transfer",Math.round(amount*100.0)/100.0,Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0,Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0,purposeOfTransfer,LocalDate.now());
-                        Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE,account2.get().getAccountNo(),account2.get().getCustomerNo(),account2.get().getFirstName(),account2.get().getLastName(),"Receive",Math.round(amount*100.0)/100.0,Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0,Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0,purposeOfTransfer,LocalDate.now());
+                        Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account1.get().getAccountNo(), account1.get().getCustomerNo(), account1.get().getFirstName(), account1.get().getLastName(), "Transfer", Math.round(amount * 100.0) / 100.0, Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
+                        Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account2.get().getAccountNo(), account2.get().getCustomerNo(), account2.get().getFirstName(), account2.get().getLastName(), "Receive", Math.round(amount * 100.0) / 100.0, Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
                         addTransaction(transaction1);
                         addTransaction(transaction2);
                         accountService.transferAmount(accountNo, destAccountNo, amount);
@@ -219,7 +219,9 @@ public class AccountController {
     @PostMapping("/accounts")
     public AccountResponse createAccount(
             @Parameter(description = "Customer number of customer to allocate")
-            @RequestBody AccountCreateRequest aRequest
+            @RequestBody AccountCreateRequest aRequest,
+            @Parameter(description = "Type of account")
+            @RequestParam AccountResponseEnum enumRequest
     ) {
         Iban iban = new Iban.Builder()
                 .countryCode(CountryCode.DE)
@@ -230,7 +232,7 @@ public class AccountController {
 
         AccountResponse acct = new AccountResponse(
                 aRequest.getCustomerNo(),
-                "",
+                enumRequest.getAccountType(),
                 firstName,
                 lastName,
                 UUID.randomUUID().hashCode() & Integer.MAX_VALUE,
@@ -252,8 +254,13 @@ public class AccountController {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
 
         if (account.isPresent()) {
-            accountService.deleteByAccountNo(accountNo);
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body("Account with account number " + accountNo + " deleted.");
+            List credit = restTemplate.getForObject("http://localhost:8090/api/credits/account-credit/" + accountNo, List.class);
+            if (credit == null) {
+                accountService.deleteByAccountNo(accountNo);
+                return ResponseEntity.status(HttpStatus.ACCEPTED).body("Account with account number " + accountNo + " deleted.");
+            }
+            else
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not delete. Account with account number " + accountNo + " still has ongoing credits.");
 
         } else
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Could not delete. Account with account number " + accountNo + " does not exist.");
