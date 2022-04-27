@@ -1,13 +1,16 @@
 package com.example.account.service;
 
 import com.example.account.model.AccountResponse;
+import com.example.account.model.Transactions;
 import com.example.account.repository.AccountRepository;
 //import com.example.banking.model.CustomerResponse;
 //import com.example.banking.repository.CustomerRepository;
+import com.example.account.repository.TransactionsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,10 +19,12 @@ public class AccountService {
 
     //    private final CustomerRepository customerRepository;
     private final AccountRepository accountRepository;
+    private final TransactionsRepository transactionsRepository;
 
-    public AccountService(/*CustomerRepository customerRepository,*/ AccountRepository accountRepository) {
+    public AccountService(/*CustomerRepository customerRepository,*/ AccountRepository accountRepository, TransactionsRepository transactionsRepository) {
 //        this.customerRepository = customerRepository;
         this.accountRepository = accountRepository;
+        this.transactionsRepository = transactionsRepository;
     }
 
     @Autowired
@@ -44,8 +49,8 @@ public class AccountService {
     public AccountResponse createAccount(AccountResponse accountNo) {
 //        Optional<CustomerResponse> customer = customerRepository.findById(accountNo.getCustomerNo());
 
-//     boolean customers = (restTemplate.getForObject("http://localhost:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
-       boolean customers = (restTemplate.getForObject("http://customer:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
+     boolean customers = (restTemplate.getForObject("http://localhost:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
+//       boolean customers = (restTemplate.getForObject("http://customer:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
 
 
         if (customers == false) {
@@ -96,6 +101,17 @@ public class AccountService {
 
     public List<Integer> getAccountNoOfCustomerAccounts(Integer customerNo) {
         return accountRepository.getAccountNoOfCustomerAccounts(customerNo);
+
+    }
+
+    public List<Transactions> findTransactionsByAccountNo(Integer accountNo) {
+        return transactionsRepository.findTransactionsByAccountNo(accountNo);
+    }
+
+    public Transactions save (Transactions transactions) {
+
+        return transactionsRepository.save(transactions);
+
 
     }
 }
