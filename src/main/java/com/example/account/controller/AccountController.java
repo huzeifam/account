@@ -18,7 +18,6 @@ import org.springframework.web.client.RestTemplate;
 
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -106,6 +105,22 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.OK).body(accountService.getBalanceInEuro(accountNo));
         else
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    @Hidden
+    @GetMapping("/accounts/{customerNo}/totalbalance")
+    public Double getCustomerBalance(
+            @PathVariable Integer customerNo
+    ){
+        List<AccountResponse> account = accountService.findAccountByCustomerNo(customerNo);
+        Double totalBalance= 0.0;
+        if(account.isEmpty())
+            return null;
+        else {
+            List<Double> allBalance = accountService.getBalanceOfCustomerAccounts(customerNo);
+            for (int i=0; i<allBalance.size(); i++)
+                totalBalance += allBalance.get(i);
+        }return totalBalance;
     }
 
     public Transactions addTransaction(Transactions transactions) {
@@ -246,6 +261,7 @@ public class AccountController {
 
     @Operation(summary = "Delete an account")
     @DeleteMapping("/accounts/{accountNo}")
+    @ResponseBody
     public ResponseEntity deleteAccount(
             @Parameter(description = "Account number of account to delete")
             @PathVariable Integer accountNo
@@ -269,6 +285,7 @@ public class AccountController {
 
     @Operation(summary = "Delete all accounts of a customer")
     @DeleteMapping("/accounts/customer-accounts/{customerNo}")
+    @ResponseBody
     public Void deleteAccountsofCustomer(
             @Parameter(description = "Customer number of customer to delete all accounts")
             @PathVariable Integer customerNo

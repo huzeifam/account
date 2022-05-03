@@ -111,7 +111,7 @@ public class AccountService {
     public Transactions save (Transactions transactions) {
 
         return transactionsRepository.save(transactions);
-
-
     }
+    public List<Double> getBalanceOfCustomerAccounts(Integer customerNo) {
+        return accountRepository.getBalanceOfCustomerAccounts(customerNo);}
 }
