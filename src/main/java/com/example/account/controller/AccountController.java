@@ -114,16 +114,17 @@ public class AccountController {
     @GetMapping("/accounts/{customerNo}/totalbalance")
     public Double getCustomerBalance(
             @PathVariable Integer customerNo
-    ){
+    ) {
         List<AccountResponse> account = accountService.findAccountByCustomerNo(customerNo);
-        Double totalBalance= 0.0;
-        if(account.isEmpty())
+        Double totalBalance = 0.0;
+        if (account.isEmpty())
             return null;
         else {
             List<Double> allBalance = accountService.getBalanceOfCustomerAccounts(customerNo);
-            for (int i=0; i<allBalance.size(); i++)
+            for (int i = 0; i < allBalance.size(); i++)
                 totalBalance += allBalance.get(i);
-        }return totalBalance;
+        }
+        return totalBalance;
     }
 
     public Transactions addTransaction(Transactions transactions) {
@@ -235,7 +236,7 @@ public class AccountController {
 
     @Operation(summary = "Create an account")
     @PostMapping("/accounts")
-    public AccountResponse createAccount(
+    public ResponseEntity<String> createAccount(
             @Parameter(description = "Customer number of customer to allocate")
             @RequestBody AccountCreateRequest aRequest,
             @Parameter(description = "Type of account")
@@ -245,8 +246,14 @@ public class AccountController {
                 .countryCode(CountryCode.DE)
                 .buildRandom();
 
+//        String firstName = restTemplate.getForObject("http://customer:8080/api/customers/" + aRequest.getCustomerNo() + "/first-name", String.class);
         String firstName = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/first-name", String.class);
         String lastName = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/last-name", String.class);
+//        String lastName = restTemplate.getForObject("http://customer:8080/api/customers/" + aRequest.getCustomerNo() + "/last-name", String.class);
+
+        Integer age = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/age", Integer.class);
+//        Integer age = restTemplate.getForObject("http://customer:8080/api/customers/"+aRequest.getCustomerNo()+"/age", Integer.class);
+
 
         AccountResponse acct = new AccountResponse(
                 aRequest.getCustomerNo(),
@@ -258,8 +265,21 @@ public class AccountController {
                 0.0,
                 LocalDate.now()
         );
-        return accountService.createAccount(acct);
-
+        if (enumRequest.getAccountType() == "Girokonto" && age >= 18) {
+            accountService.createAccount(acct);
+            return ResponseEntity.status(HttpStatus.OK).body("Account for customer " + firstName + " created.");
+        } else if (enumRequest.getAccountType() == "Girokonto" && age < 18) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Account type \"" + enumRequest.getAccountType() + "\" available for 18 years and older.\n" +
+                    "Age of customer: " + age);
+        } else if (enumRequest.getAccountType() == "Schülerkonto" && age < 18 && age >= 7) {
+            accountService.createAccount(acct);
+            return ResponseEntity.status(HttpStatus.OK).body("Account for customer " + firstName + " created.");
+        } else if  (enumRequest.getAccountType() == "Schülerkonto" && age >= 18 ||enumRequest.getAccountType() == "Schülerkonto" && age < 7) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Account type \"" + enumRequest.getAccountType() + "\" available for 7-17 year olds. \n" +
+                    "Age of customer: " + age);
+        }
+        else
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Account type \""+enumRequest.getAccountType()+"\" is currently not available.");
     }
 
     @Operation(summary = "Delete an account")
@@ -289,7 +309,7 @@ public class AccountController {
 
     @Operation(summary = "Delete all accounts of a customer")
     @DeleteMapping("/accounts/customer-accounts/{customerNo}")
-    public Void deleteAccountsofCustomer(
+    public ResponseEntity deleteAccountsofCustomer(
             @Parameter(description = "Customer number of customer to delete all accounts")
             @PathVariable Integer customerNo
     ) {
@@ -297,14 +317,21 @@ public class AccountController {
 
 
         if (account.isEmpty()) {
-            return null;
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer (" + customerNo + ") has no accounts.");
         } else {
             List<Integer> accountNo = accountService.getAccountNoOfCustomerAccounts(customerNo);
             for (int i = 0; i < accountNo.size(); i++) {
-                restTemplate.delete("http://localhost:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
+                List credit = restTemplate.getForObject("http://localhost:8090/api/credits/account-credit/" + accountNo.get(i), List.class);
+                if (credit == null) {
+                    if (account.get(i).getBalanceInEuro() == 0.0) {
+                        accountService.deleteByAccountNo(accountNo.get(i));
+                    }
+
+                }
+//                restTemplate.delete("http://localhost:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
 //                restTemplate.delete("http://credit:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
             }
-            return accountService.deleteAccountByCustomerNo(customerNo);
+            return ResponseEntity.status(HttpStatus.OK).body("All accounts of customer (" + customerNo + ") with zero balance and zero ongoing credits deleted.");
         }
     }
 
