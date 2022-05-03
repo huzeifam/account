@@ -261,7 +261,6 @@ public class AccountController {
 
     @Operation(summary = "Delete an account")
     @DeleteMapping("/accounts/{accountNo}")
-    @ResponseBody
     public ResponseEntity deleteAccount(
             @Parameter(description = "Account number of account to delete")
             @PathVariable Integer accountNo
@@ -285,7 +284,6 @@ public class AccountController {
 
     @Operation(summary = "Delete all accounts of a customer")
     @DeleteMapping("/accounts/customer-accounts/{customerNo}")
-    @ResponseBody
     public Void deleteAccountsofCustomer(
             @Parameter(description = "Customer number of customer to delete all accounts")
             @PathVariable Integer customerNo
