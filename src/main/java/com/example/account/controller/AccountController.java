@@ -57,9 +57,12 @@ public class AccountController {
             } else {
                 return null;
             }
-        } else
-            return new String[]{notFound};
+        } else if (!transaction.isEmpty()) {
+            return accountService.findTransactionsByAccountNo(accountNo).toArray();
+        } else {
+            return null;
 
+        }
     }
 
     @Operation(summary = "Find account by account number")
@@ -256,10 +259,12 @@ public class AccountController {
         if (account.isPresent()) {
             List credit = restTemplate.getForObject("http://localhost:8090/api/credits/account-credit/" + accountNo, List.class);
             if (credit == null) {
-                accountService.deleteByAccountNo(accountNo);
-                return ResponseEntity.status(HttpStatus.ACCEPTED).body("Account with account number " + accountNo + " deleted.");
-            }
-            else
+                if (account.get().getBalanceInEuro() == 0.0) {
+                    accountService.deleteByAccountNo(accountNo);
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Account with account number " + accountNo + " deleted.");
+                } else
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not delete. Balance of account with account number " + accountNo + " is not zero.");
+            } else
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not delete. Account with account number " + accountNo + " still has ongoing credits.");
 
         } else
