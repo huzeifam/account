@@ -49,8 +49,8 @@ public class AccountService {
     public AccountResponse createAccount(AccountResponse accountNo) {
 //        Optional<CustomerResponse> customer = customerRepository.findById(accountNo.getCustomerNo());
 
-     boolean customers = (restTemplate.getForObject("http://localhost:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
-//       boolean customers = (restTemplate.getForObject("http://customer:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
+//     boolean customers = (restTemplate.getForObject("http://localhost:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
+       boolean customers = (restTemplate.getForObject("http://customer:8080/api/customers/numbers", List.class).contains(accountNo.getCustomerNo()));
 
 
         if (customers == false) {

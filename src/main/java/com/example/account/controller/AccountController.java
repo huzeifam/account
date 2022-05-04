@@ -246,13 +246,16 @@ public class AccountController {
                 .countryCode(CountryCode.DE)
                 .buildRandom();
 
-//        String firstName = restTemplate.getForObject("http://customer:8080/api/customers/" + aRequest.getCustomerNo() + "/first-name", String.class);
-        String firstName = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/first-name", String.class);
-        String lastName = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/last-name", String.class);
-//        String lastName = restTemplate.getForObject("http://customer:8080/api/customers/" + aRequest.getCustomerNo() + "/last-name", String.class);
+        String firstName = restTemplate.getForObject("http://customer:8080/api/customers/" + aRequest.getCustomerNo() + "/first-name", String.class);
+//        String firstName = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/first-name", String.class);
+//        String lastName = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/last-name", String.class);
+        String lastName = restTemplate.getForObject("http://customer:8080/api/customers/" + aRequest.getCustomerNo() + "/last-name", String.class);
 
-        Integer age = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/age", Integer.class);
-//        Integer age = restTemplate.getForObject("http://customer:8080/api/customers/"+aRequest.getCustomerNo()+"/age", Integer.class);
+//        Integer age = restTemplate.getForObject("http://localhost:8080/api/customers/" + aRequest.getCustomerNo() + "/age", Integer.class);
+        Integer age = restTemplate.getForObject("http://customer:8080/api/customers/"+aRequest.getCustomerNo()+"/age", Integer.class);
+
+
+        List<AccountResponse> account = accountService.findAccountByCustomerNo(aRequest.getCustomerNo());
 
 
         AccountResponse acct = new AccountResponse(
@@ -263,23 +266,62 @@ public class AccountController {
                 UUID.randomUUID().hashCode() & Integer.MAX_VALUE,
                 (iban.getCountryCode() + iban.getCheckDigit() + iban.getBban()).replaceAll("(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w)", "$1 $2 $3 $4 $5 $6"),
                 0.0,
-                LocalDate.now()
+                LocalDate.now(),
+                aRequest.getReferenceAccount()
         );
-        if (enumRequest.getAccountType() == "Girokonto" && age >= 18) {
+        if (aRequest.getReferenceAccount() == 0) {
+            acct.setReferenceAccount(null);
+        }
+
+//        Referenzkonto für Girokonto oder Schülerkonto nicht erlaubt
+        if (enumRequest.getAccountType() == "Girokonto" && aRequest.getReferenceAccount() != 0 || enumRequest.getAccountType() == "Schülerkonto" && aRequest.getReferenceAccount() != 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Reference account for account type \"" + enumRequest.getAccountType() + "\" is not allowed.");
+        }
+
+//        Erstelle Griokonto wenn Kunde mindestens 18 ist
+        else if (enumRequest.getAccountType() == "Girokonto" && age >= 18) {
             accountService.createAccount(acct);
             return ResponseEntity.status(HttpStatus.OK).body("Account for customer " + firstName + " created.");
-        } else if (enumRequest.getAccountType() == "Girokonto" && age < 18) {
+        }
+
+
+//        Erstelle kein Girokonto wenn Kunde unter 18 ist
+        else if (enumRequest.getAccountType() == "Girokonto" && age < 18) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Account type \"" + enumRequest.getAccountType() + "\" available for 18 years and older.\n" +
                     "Age of customer: " + age);
-        } else if (enumRequest.getAccountType() == "Schülerkonto" && age < 18 && age >= 7) {
+        }
+//        Erstelle Schülerkonto wenn Kunde mindestens 7 und höchstens 17 Jahre ist
+        else if (enumRequest.getAccountType() == "Schülerkonto" && age < 18 && age >= 7) {
             accountService.createAccount(acct);
             return ResponseEntity.status(HttpStatus.OK).body("Account for customer " + firstName + " created.");
-        } else if  (enumRequest.getAccountType() == "Schülerkonto" && age >= 18 ||enumRequest.getAccountType() == "Schülerkonto" && age < 7) {
+        }
+//        Erstelle kein Schülerkonto wenn Kunde unter 7 oder mindestens 18 Jahre ist
+        else if (enumRequest.getAccountType() == "Schülerkonto" && age >= 18 || enumRequest.getAccountType() == "Schülerkonto" && age < 7) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Account type \"" + enumRequest.getAccountType() + "\" available for 7-17 year olds. \n" +
                     "Age of customer: " + age);
         }
-        else
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Account type \""+enumRequest.getAccountType()+"\" is currently not available.");
+//        Fehler, wenn kein Referenzkonto (bei Tagesgeldkonto) angegeben ist
+        else if (enumRequest.getAccountType() == "Tagesgeldkonto" && aRequest.getReferenceAccount() == 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Reference account missing!");
+        }
+
+        else if (enumRequest.getAccountType() == "Tagesgeldkonto" && aRequest.getReferenceAccount() != 0) {
+            System.out.println(account.size());
+
+            for (int i = 0; i < account.size(); i++) {
+                System.out.println(account.get(i).getAccountNo());
+                System.out.println(account.get(i).getAccountType());
+                System.out.println(aRequest.getReferenceAccount());
+                if (account.get(i).getAccountNo() == aRequest.getReferenceAccount() && account.get(i).getAccountType() == "Girokonto") {
+                    accountService.createAccount(acct);
+                    return ResponseEntity.status(HttpStatus.OK).body("Account (" + enumRequest.getAccountType() + ") for customer " + firstName + " created. Reference account is account with account number: " + account.get(i).getAccountNo());
+                }
+                else
+                    System.out.println("sooo");
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body("test");
     }
 
     @Operation(summary = "Delete an account")
@@ -292,7 +334,8 @@ public class AccountController {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
 
         if (account.isPresent()) {
-            List credit = restTemplate.getForObject("http://localhost:8090/api/credits/account-credit/" + accountNo, List.class);
+//            List credit = restTemplate.getForObject("http://localhost:8090/api/credits/account-credit/" + accountNo, List.class);
+            List credit = restTemplate.getForObject("http://credit:8090/api/credits/account-credit/" + accountNo, List.class);
             if (credit == null) {
                 if (account.get().getBalanceInEuro() == 0.0) {
                     accountService.deleteByAccountNo(accountNo);
@@ -321,7 +364,9 @@ public class AccountController {
         } else {
             List<Integer> accountNo = accountService.getAccountNoOfCustomerAccounts(customerNo);
             for (int i = 0; i < accountNo.size(); i++) {
-                List credit = restTemplate.getForObject("http://localhost:8090/api/credits/account-credit/" + accountNo.get(i), List.class);
+//                List credit = restTemplate.getForObject("http://localhost:8090/api/credits/account-credit/" + accountNo.get(i), List.class);
+                List credit = restTemplate.getForObject("http://credit:8090/api/credits/account-credit/" + accountNo.get(i), List.class);
+
                 if (credit == null) {
                     if (account.get(i).getBalanceInEuro() == 0.0) {
                         accountService.deleteByAccountNo(accountNo.get(i));

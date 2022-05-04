@@ -20,6 +20,8 @@ public class AccountResponse {
     private Double balanceInEuro;
     private LocalDate startDate;
 
+    private Integer referenceAccount;
+
 
 
 
@@ -29,7 +31,7 @@ public class AccountResponse {
     }
 
     public AccountResponse(Integer customerNo, String accountType, String firstName, String lastName, Integer accountNo, String iban,
-                           Double balanceInEuro, LocalDate startDate) {
+                           Double balanceInEuro, LocalDate startDate, Integer referenceAccount) {
         this.customerNo = customerNo;
         this.accountType = accountType;
         this.firstName = firstName;
@@ -38,6 +40,7 @@ public class AccountResponse {
         this.iban = iban;
         this.balanceInEuro = balanceInEuro;
         this.startDate = startDate;
+        this.referenceAccount = referenceAccount;
     }
 
     public Integer getCustomerNo() {return customerNo; }
@@ -59,4 +62,11 @@ public class AccountResponse {
     public Double getBalanceInEuro() { return Math.round(balanceInEuro*100.0)/100.0; }
     public LocalDate getStartDate() { return startDate; }
 
+    public Integer getReferenceAccount() {
+        return referenceAccount;
+    }
+
+    public void setReferenceAccount(Integer referenceAccount) {
+        this.referenceAccount = referenceAccount;
+    }
 }
