@@ -92,7 +92,8 @@ public class AccountController {
         String empty = "Either customer with customer number " + customerNo + " does not exist or the customer has no accounts.";
         List<AccountResponse> account = accountService.findAccountByCustomerNo(customerNo);
         if (account.isEmpty())
-            return new String[]{empty};
+//            return new String[]{empty};
+            return null;
         else
             return accountService.findAccountByCustomerNo(customerNo).toArray();
 
@@ -347,6 +348,7 @@ public class AccountController {
                 aRequest.getReferenceAccount()
         );
         boolean customers = (restTemplate.getForObject("http://localhost:8080/api/customers/numbers", List.class).contains(aRequest.getCustomerNo()));
+//        boolean customers = (restTemplate.getForObject("http://customer:8080/api/customers/numbers", List.class).contains(aRequest.getCustomerNo()));
         if (customers == true) {
             if (aRequest.getReferenceAccount() == 0) {
                 acct.setReferenceAccount(null);
@@ -458,6 +460,8 @@ public class AccountController {
                 }
 //                restTemplate.delete("http://localhost:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
 //                restTemplate.delete("http://credit:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
+            }if (account.isEmpty()){
+                return null;
             }
             return ResponseEntity.status(HttpStatus.OK).body("All accounts of customer (" + customerNo + ") with zero balance and zero ongoing credits deleted.");
         }
