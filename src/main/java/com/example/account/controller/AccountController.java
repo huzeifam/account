@@ -144,22 +144,24 @@ public class AccountController {
             @PathVariable Double amount
     ) {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
-        if (account.isPresent()) {
-            if (account.get().getAccountType().equals("Tagesgeldkonto")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("No deposits allowed for account type \"" + account.get().getAccountType() + "\". \n" +
-                        "For deposits into this account: Deposit requested amount into reference account (" + account.get().getReferenceAccount() + ") and then transfer in this account");
-            } else {
-                accountService.depositAmount(accountNo, amount);
-                Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Deposit", Math.round(amount * 100.0) / 100.0, Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0, "-", LocalDate.now());
-                addTransaction(transactions);
-                return ResponseEntity.status(HttpStatus.ACCEPTED).body("Deposit success.\n\n" +
-                        "Previous balance: " + Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                        "Amount: " + Math.round(amount * 100.0) / 100.0 + "€ \n" +
-                        "Current balance: " + Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
-            }
-        } else
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Deposit amount failed. Account with account number " + accountNo + " does not exist.");
-
+        if (amount >= 0) {
+            if (account.isPresent()) {
+                if (account.get().getAccountType().equals("Tagesgeldkonto")) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("No deposits allowed for account type \"" + account.get().getAccountType() + "\". \n" +
+                            "For deposits into this account: Deposit requested amount into reference account (" + account.get().getReferenceAccount() + ") and then transfer in this account");
+                } else {
+                    accountService.depositAmount(accountNo, amount);
+                    Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Deposit", Math.round(amount * 100.0) / 100.0, Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0, "-", LocalDate.now());
+                    addTransaction(transactions);
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Deposit success.\n\n" +
+                            "Previous balance: " + Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                            "Amount: " + Math.round(amount * 100.0) / 100.0 + "€ \n" +
+                            "Current balance: " + Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
+                }
+            } else
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Deposit amount failed. Account with account number " + accountNo + " does not exist.");
+        }else
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Deposit failed. Amount should be positive!");
     }
 
     @Operation(summary = "Withdraw an amount from an account")
@@ -171,26 +173,29 @@ public class AccountController {
             @PathVariable Double amount
     ) {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
-        if (account.isPresent()) {
-            if (account.get().getAccountType().equals("Tagesgeldkonto")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("No withdrawals allowed for account type \"" + account.get().getAccountType() + "\". \n" +
-                        "For withdrawal from this account: Transfer requested amount to reference account (" + account.get().getReferenceAccount() + ") and then withdraw from that account.");
-            } else if (account.get().getBalanceInEuro() - amount >= 0) {
-                Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Withdraw", Math.round(amount * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro()) * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() - amount) * 100.0) / 100.0, "-", LocalDate.now());
-                addTransaction(transactions);
-                accountService.withdrawAmount(accountNo, amount);
-                return ResponseEntity.status(HttpStatus.ACCEPTED).body("Withdraw success.\n\n" +
-                        "Previous balance: " + Math.round((account.get().getBalanceInEuro()) * 100.0) / 100.0 + "€\n" +
-                        "Amount: " + Math.round(amount * 100.0) / 100.0 + "€ \n" +
-                        "Current balance: " + Math.round((account.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€");
-            } else {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not withdraw.\n\n" +
-                        "Requested amount: " + Math.round(amount * 100.0) / 100.0 + "€\n" +
-                        "Current balance: " + Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0 + "€ \n\n" +
-                        "Amount is bigger than current balance.");
-            }
-        } else
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Withdraw amount failed. Account with account number " + accountNo + " does not exist.");
+        if (amount >= 0) {
+            if (account.isPresent()) {
+                if (account.get().getAccountType().equals("Tagesgeldkonto")) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("No withdrawals allowed for account type \"" + account.get().getAccountType() + "\". \n" +
+                            "For withdrawal from this account: Transfer requested amount to reference account (" + account.get().getReferenceAccount() + ") and then withdraw from that account.");
+                } else if (account.get().getBalanceInEuro() - amount >= 0) {
+                    Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Withdraw", Math.round(amount * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro()) * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() - amount) * 100.0) / 100.0, "-", LocalDate.now());
+                    addTransaction(transactions);
+                    accountService.withdrawAmount(accountNo, amount);
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Withdraw success.\n\n" +
+                            "Previous balance: " + Math.round((account.get().getBalanceInEuro()) * 100.0) / 100.0 + "€\n" +
+                            "Amount: " + Math.round(amount * 100.0) / 100.0 + "€ \n" +
+                            "Current balance: " + Math.round((account.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€");
+                } else {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not withdraw.\n\n" +
+                            "Requested amount: " + Math.round(amount * 100.0) / 100.0 + "€\n" +
+                            "Current balance: " + Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0 + "€ \n\n" +
+                            "Amount is bigger than current balance.");
+                }
+            } else
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Withdraw amount failed. Account with account number " + accountNo + " does not exist.");
+        }else
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Withdrawal failed. Amount should be positive!");
     }
 
     @Operation(summary = "Transfer amount from one account to another account")
@@ -207,109 +212,110 @@ public class AccountController {
     ) {
         Optional<AccountResponse> account1 = accountService.findByAccountNo(accountNo);
         Optional<AccountResponse> account2 = accountService.findByAccountNo(destAccountNo);
-
-        if (account1.isPresent()) {
-            if (account2.isPresent()) {
-                if (account1.get().getAccountNo() != account2.get().getAccountNo()) {
-                    if (account1.get().getAccountType().equals("Tagesgeldkonto") && account2.get().getAccountType().equals("Tagesgeldkonto")) {
-                        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Account type of both accounts: Tagesgeldkonto\n" +
-                                "Transfer is not possible.");
-                    } else if (account1.get().getAccountType().equals("Tagesgeldkonto") || account2.get().getAccountType().equals("Tagesgeldkonto")) {
-                        if (account1.get().getAccountType().equals("Tagesgeldkonto")) {
-                            if (account1.get().getReferenceAccount().equals(account2.get().getAccountNo())) {
-                                if (account1.get().getBalanceInEuro() - amount >= 0) {
-                                    Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account1.get().getAccountNo(), account1.get().getCustomerNo(), account1.get().getFirstName(), account1.get().getLastName(), "Transfer", Math.round(amount * 100.0) / 100.0, Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
-                                    Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account2.get().getAccountNo(), account2.get().getCustomerNo(), account2.get().getFirstName(), account2.get().getLastName(), "Receive", Math.round(amount * 100.0) / 100.0, Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
-                                    addTransaction(transaction1);
-                                    addTransaction(transaction2);
-                                    accountService.transferAmount(accountNo, destAccountNo, amount);
-                                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Receiving account is reference account of transferring account. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
-                                            "Transferring account with account number \"" + accountNo + "\":\n" +
-                                            "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                            "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
-                                            "Receiving account (reference account) with account number \"" + destAccountNo + "\":\n" +
-                                            "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                            "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
+        if (amount >= 0){
+            if (account1.isPresent()) {
+                if (account2.isPresent()) {
+                    if (account1.get().getAccountNo() != account2.get().getAccountNo()) {
+                        if (account1.get().getAccountType().equals("Tagesgeldkonto") && account2.get().getAccountType().equals("Tagesgeldkonto")) {
+                            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Account type of both accounts: Tagesgeldkonto\n" +
+                                    "Transfer is not possible.");
+                        } else if (account1.get().getAccountType().equals("Tagesgeldkonto") || account2.get().getAccountType().equals("Tagesgeldkonto")) {
+                            if (account1.get().getAccountType().equals("Tagesgeldkonto")) {
+                                if (account1.get().getReferenceAccount().equals(account2.get().getAccountNo())) {
+                                    if (account1.get().getBalanceInEuro() - amount >= 0) {
+                                        Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account1.get().getAccountNo(), account1.get().getCustomerNo(), account1.get().getFirstName(), account1.get().getLastName(), "Transfer", Math.round(amount * 100.0) / 100.0, Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
+                                        Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account2.get().getAccountNo(), account2.get().getCustomerNo(), account2.get().getFirstName(), account2.get().getLastName(), "Receive", Math.round(amount * 100.0) / 100.0, Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
+                                        addTransaction(transaction1);
+                                        addTransaction(transaction2);
+                                        accountService.transferAmount(accountNo, destAccountNo, amount);
+                                        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Receiving account is reference account of transferring account. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
+                                                "Transferring account with account number \"" + accountNo + "\":\n" +
+                                                "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
+                                                "Receiving account (reference account) with account number \"" + destAccountNo + "\":\n" +
+                                                "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
+                                    } else
+                                        return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
+                                                "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
+                                                "Current balance of transferring account with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance of receiving account (reference account) with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
+                                                "Amount is bigger than current balance of transferring account.");
                                 } else
-                                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
-                                            "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
-                                            "Current balance of transferring account with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                            "Current balance of receiving account (reference account) with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
-                                            "Amount is bigger than current balance of transferring account.");
-                            } else
-                                return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Transfer failed. Account type of transferring account: Tagesgeldkonto \n" +
-                                        "Transfer is only allowed with reference account: " + account1.get().getReferenceAccount() + "\n" +
-                                        "Receiving account is not reference account of transferring account.");
-                        }
-                        if (account2.get().getAccountType().equals("Tagesgeldkonto")) {
-                            if (account2.get().getReferenceAccount().equals(account1.get().getAccountNo())) {
-                                if (account1.get().getBalanceInEuro() - amount >= 0) {
-                                    Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account1.get().getAccountNo(), account1.get().getCustomerNo(), account1.get().getFirstName(), account1.get().getLastName(), "Transfer", Math.round(amount * 100.0) / 100.0, Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
-                                    Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account2.get().getAccountNo(), account2.get().getCustomerNo(), account2.get().getFirstName(), account2.get().getLastName(), "Receive", Math.round(amount * 100.0) / 100.0, Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
-                                    addTransaction(transaction1);
-                                    addTransaction(transaction2);
-                                    accountService.transferAmount(accountNo, destAccountNo, amount);
-                                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Transferring account is reference account of receiving account. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
-                                            "Transferring account (reference account) with account number \"" + accountNo + "\":\n" +
-                                            "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                            "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
-                                            "Receiving account with account number \"" + destAccountNo + "\":\n" +
-                                            "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                            "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
+                                    return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Transfer failed. Account type of transferring account: Tagesgeldkonto \n" +
+                                            "Transfer is only allowed with reference account: " + account1.get().getReferenceAccount() + "\n" +
+                                            "Receiving account is not reference account of transferring account.");
+                            }
+                            if (account2.get().getAccountType().equals("Tagesgeldkonto")) {
+                                if (account2.get().getReferenceAccount().equals(account1.get().getAccountNo())) {
+                                    if (account1.get().getBalanceInEuro() - amount >= 0) {
+                                        Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account1.get().getAccountNo(), account1.get().getCustomerNo(), account1.get().getFirstName(), account1.get().getLastName(), "Transfer", Math.round(amount * 100.0) / 100.0, Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
+                                        Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account2.get().getAccountNo(), account2.get().getCustomerNo(), account2.get().getFirstName(), account2.get().getLastName(), "Receive", Math.round(amount * 100.0) / 100.0, Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
+                                        addTransaction(transaction1);
+                                        addTransaction(transaction2);
+                                        accountService.transferAmount(accountNo, destAccountNo, amount);
+                                        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Transferring account is reference account of receiving account. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
+                                                "Transferring account (reference account) with account number \"" + accountNo + "\":\n" +
+                                                "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
+                                                "Receiving account with account number \"" + destAccountNo + "\":\n" +
+                                                "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
+                                    } else
+                                        return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
+                                                "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
+                                                "Current balance of transferring account (reference account) with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance of receiving account with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
+                                                "Amount is bigger than current balance of transferring account.");
                                 } else
-                                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
-                                            "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
-                                            "Current balance of transferring account (reference account) with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                            "Current balance of receiving account with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
-                                            "Amount is bigger than current balance of transferring account.");
+                                    return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Transfer failed. Account type of receiving account: Tagesgeldkonto \n" +
+                                            "Transfer is only allowed with reference account: " + account2.get().getReferenceAccount() + "\n" +
+                                            "Transferring account is not reference account of receiving account.");
+                            }
+                        } else if (!account1.get().getAccountType().equals("Tagesgeldkonto") && !account2.get().getAccountType().equals("Tagesgeldkonto")) {
+                            if (account1.get().getBalanceInEuro() - amount >= 0) {
+                                Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account1.get().getAccountNo(), account1.get().getCustomerNo(), account1.get().getFirstName(), account1.get().getLastName(), "Transfer", Math.round(amount * 100.0) / 100.0, Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
+                                Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account2.get().getAccountNo(), account2.get().getCustomerNo(), account2.get().getFirstName(), account2.get().getLastName(), "Receive", Math.round(amount * 100.0) / 100.0, Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
+                                addTransaction(transaction1);
+                                addTransaction(transaction2);
+                                accountService.transferAmount(accountNo, destAccountNo, amount);
+                                return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
+                                        "Transferring account with account number \"" + accountNo + "\":\n" +
+                                        "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                        "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
+                                        "Receiving account with account number \"" + destAccountNo + "\":\n" +
+                                        "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                        "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
                             } else
-                                return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Transfer failed. Account type of receiving account: Tagesgeldkonto \n" +
-                                        "Transfer is only allowed with reference account: " + account2.get().getReferenceAccount() + "\n" +
-                                        "Transferring account is not reference account of receiving account.");
+                                return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
+                                        "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
+                                        "Current balance of transferring account with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                        "Current balance of receiving account with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
+                                        "Amount is bigger than current balance of transferring account.");
                         }
-                    } else if (!account1.get().getAccountType().equals("Tagesgeldkonto") && !account2.get().getAccountType().equals("Tagesgeldkonto")) {
-                        if (account1.get().getBalanceInEuro() - amount >= 0) {
-                            Transactions transaction1 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account1.get().getAccountNo(), account1.get().getCustomerNo(), account1.get().getFirstName(), account1.get().getLastName(), "Transfer", Math.round(amount * 100.0) / 100.0, Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
-                            Transactions transaction2 = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account2.get().getAccountNo(), account2.get().getCustomerNo(), account2.get().getFirstName(), account2.get().getLastName(), "Receive", Math.round(amount * 100.0) / 100.0, Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0, purposeOfTransfer, LocalDate.now());
-                            addTransaction(transaction1);
-                            addTransaction(transaction2);
-                            accountService.transferAmount(accountNo, destAccountNo, amount);
-                            return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
-                                    "Transferring account with account number \"" + accountNo + "\":\n" +
-                                    "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                    "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
-                                    "Receiving account with account number \"" + destAccountNo + "\":\n" +
-                                    "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                    "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
-                        } else
-                            return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
-                                    "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
-                                    "Current balance of transferring account with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                    "Current balance of receiving account with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
-                                    "Amount is bigger than current balance of transferring account.");
-                    }
 
+                    } else
+                        return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Transferring account and receiving account are the same!");
+
+                }
+                if (account1.get().getAccountType().equals("Tagesgeldkonto")) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
+                            "The receiving account with account number " + destAccountNo + " does not exist.\n" +
+                            "The transferring account with account number " + accountNo + " is not allowed to transfer or receive money (only allowed with reference account (" + account1.get().getReferenceAccount() + ").\n Account type: \"" + account1.get().getAccountType() + "\".");
                 } else
-                    return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Transferring account and receiving account are the same!");
-
-            }
-            if (account1.get().getAccountType().equals("Tagesgeldkonto")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
-                        "The receiving account with account number " + destAccountNo + " does not exist.\n" +
-                        "The transferring account with account number " + accountNo + " is not allowed to transfer or receive money (only allowed with reference account (" + account1.get().getReferenceAccount() + ").\n Account type: \"" + account1.get().getAccountType() + "\".");
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The receiving account with account number " + destAccountNo + " does not exist.");
+            } else if (account2.isPresent()) {
+                if (account2.get().getAccountType().equals("Tagesgeldkonto")) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
+                            "The transferring account with account number " + accountNo + " does not exist.\n" +
+                            "The receiving account with account number " + destAccountNo + " is not allowed to transfer or receive money (only allowed with reference account (" + account2.get().getReferenceAccount() + ").\n Account type: \"" + account2.get().getAccountType() + "\".");
+                } else
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The transferring account with account number " + accountNo + " does not exist.");
             } else
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The receiving account with account number " + destAccountNo + " does not exist.");
-        } else if (account2.isPresent()) {
-            if (account2.get().getAccountType().equals("Tagesgeldkonto")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
-                        "The transferring account with account number " + accountNo + " does not exist.\n" +
-                        "The receiving account with account number " + destAccountNo + " is not allowed to transfer or receive money (only allowed with reference account (" + account2.get().getReferenceAccount() + ").\n Account type: \"" + account2.get().getAccountType() + "\".");
-            } else
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The transferring account with account number " + accountNo + " does not exist.");
-        } else
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. Accounts with account numbers \"" + accountNo + "\" and \"" + destAccountNo + "\" don't exist.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. Accounts with account numbers \"" + accountNo + "\" and \"" + destAccountNo + "\" don't exist.");
 
-
+    }else
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Transfer failed. Amount should be positive!");
     }
 
     @Operation(summary = "Create an account")
@@ -460,7 +466,8 @@ public class AccountController {
                 }
 //                restTemplate.delete("http://localhost:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
 //                restTemplate.delete("http://credit:8090/api/credits/account-credits/{accountNo}", accountNo.get(i));
-            }if (account.isEmpty()){
+            }
+            if (account.isEmpty()) {
                 return null;
             }
             return ResponseEntity.status(HttpStatus.OK).body("All accounts of customer (" + customerNo + ") with zero balance and zero ongoing credits deleted.");
