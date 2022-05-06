@@ -66,6 +66,39 @@ public class AccountResponse {
         return referenceAccount;
     }
 
+
+    public void setAccountNo(Integer accountNo) {
+        this.accountNo = accountNo;
+    }
+
+    public void setAccountType(String accountType) {
+        this.accountType = accountType;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public void setCustomerNo(Integer customerNo) {
+        this.customerNo = customerNo;
+    }
+
+    public void setIban(String iban) {
+        this.iban = iban;
+    }
+
+    public void setBalanceInEuro(Double balanceInEuro) {
+        this.balanceInEuro = balanceInEuro;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
     public void setReferenceAccount(Integer referenceAccount) {
         this.referenceAccount = referenceAccount;
     }
