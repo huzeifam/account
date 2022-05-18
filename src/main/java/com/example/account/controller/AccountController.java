@@ -43,26 +43,31 @@ public class AccountController {
         return accountService.findAllAccounts();
     }
 
+    @Operation(summary = "View all transactions of account")
     @GetMapping("/transactions/{accountNo}")
     public Object[] getTransactionsOfAccount(
+            @Parameter(description = "account number of account to view transactions")
             @PathVariable Integer accountNo
     ) {
         Optional<AccountResponse> account = accountService.findByAccountNo(accountNo);
         List<Transactions> transaction = accountService.findTransactionsByAccountNo(accountNo);
-        String notFound = "Account with account number " + accountNo + " does not exist.";
+        String notFound = "Account (account number: " + accountNo + ") does not exist and no transactions found.";
+
         if (account.isPresent()) {
             if (!transaction.isEmpty()) {
                 return accountService.findTransactionsByAccountNo(accountNo).toArray();
             } else {
-                return null;
+                String nottrans = "Account (account number: " + accountNo + ", name: " + account.get().getFirstName() + " " + account.get().getLastName() + ") has no transactions.";
+                return new String[]{nottrans};
             }
         } else if (!transaction.isEmpty()) {
             return accountService.findTransactionsByAccountNo(accountNo).toArray();
         } else {
-            return null;
+            return new String[]{notFound};
 
+            }
         }
-    }
+
 
     @Operation(summary = "Find account by account number")
     @GetMapping("/accounts/{accountNo}")
@@ -74,7 +79,7 @@ public class AccountController {
         if (account.isPresent())
             return ResponseEntity.ok(account.get());
         else
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account with account number " + accountNo + " not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account (account number: " + accountNo + ") not found.");
     }
 
     @Hidden
@@ -83,6 +88,7 @@ public class AccountController {
         return accountService.getAccountNo();
     }
 
+    @Hidden
     @Operation(summary = "Get all accounts of a customer")
     @GetMapping("/accounts/customer-accounts/{customerNo}")
     public Object[] getCustomerAccountByCustomerNo(
@@ -148,7 +154,7 @@ public class AccountController {
             if (account.isPresent()) {
                 if (account.get().getAccountType().equals("Tagesgeldkonto")) {
                     return ResponseEntity.status(HttpStatus.CONFLICT).body("No deposits allowed for account type \"" + account.get().getAccountType() + "\". \n" +
-                            "For deposits into this account: Deposit requested amount into reference account (" + account.get().getReferenceAccount() + ") and then transfer in this account");
+                            "For deposits into this account: Deposit requested amount into reference account (account number: " + account.get().getReferenceAccount() + ", name: "+account.get().getFirstName()+" "+account.get().getLastName()+") and then transfer in this account");
                 } else {
                     accountService.depositAmount(accountNo, amount);
                     Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Deposit", Math.round(amount * 100.0) / 100.0, Math.round(account.get().getBalanceInEuro() * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0, "-", LocalDate.now());
@@ -159,7 +165,7 @@ public class AccountController {
                             "Current balance: " + Math.round((account.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
                 }
             } else
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Deposit amount failed. Account with account number " + accountNo + " does not exist.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Deposit amount failed. Account (account number: " + accountNo + ") does not exist.");
         }else
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Deposit failed. Amount should be positive!");
     }
@@ -177,7 +183,7 @@ public class AccountController {
             if (account.isPresent()) {
                 if (account.get().getAccountType().equals("Tagesgeldkonto")) {
                     return ResponseEntity.status(HttpStatus.CONFLICT).body("No withdrawals allowed for account type \"" + account.get().getAccountType() + "\". \n" +
-                            "For withdrawal from this account: Transfer requested amount to reference account (" + account.get().getReferenceAccount() + ") and then withdraw from that account.");
+                            "For withdrawal from this account: Transfer requested amount to reference account (account number: " + account.get().getReferenceAccount() + ", name: "+account.get().getFirstName()+" "+account.get().getLastName()+") and then withdraw from that account.");
                 } else if (account.get().getBalanceInEuro() - amount >= 0) {
                     Transactions transactions = new Transactions(UUID.randomUUID().hashCode() & Integer.MAX_VALUE, account.get().getAccountNo(), account.get().getCustomerNo(), account.get().getFirstName(), account.get().getLastName(), "Withdraw", Math.round(amount * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro()) * 100.0) / 100.0, Math.round((account.get().getBalanceInEuro() - amount) * 100.0) / 100.0, "-", LocalDate.now());
                     addTransaction(transactions);
@@ -193,7 +199,7 @@ public class AccountController {
                             "Amount is bigger than current balance.");
                 }
             } else
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Withdraw amount failed. Account with account number " + accountNo + " does not exist.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Withdraw amount failed. Account (account number: " + accountNo + ") does not exist.");
         }else
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Withdrawal failed. Amount should be positive!");
     }
@@ -229,17 +235,17 @@ public class AccountController {
                                         addTransaction(transaction2);
                                         accountService.transferAmount(accountNo, destAccountNo, amount);
                                         return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Receiving account is reference account of transferring account. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
-                                                "Transferring account with account number \"" + accountNo + "\":\n" +
+                                                "Transferring account (account number: " + accountNo + "):\n" +
                                                 "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
                                                 "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
-                                                "Receiving account (reference account) with account number \"" + destAccountNo + "\":\n" +
+                                                "Receiving account (reference account, account number: " + destAccountNo + "):\n" +
                                                 "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
                                                 "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
                                     } else
                                         return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
                                                 "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
-                                                "Current balance of transferring account with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                                "Current balance of receiving account (reference account) with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
+                                                "Current balance of transferring account (account number: " + accountNo + ", name: "+account1.get().getFirstName()+" "+account1.get().getLastName()+"): " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance of receiving account (reference account, account number: " + destAccountNo + ", name: "+account2.get().getFirstName()+" "+account2.get().getLastName()+"): " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
                                                 "Amount is bigger than current balance of transferring account.");
                                 } else
                                     return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Transfer failed. Account type of transferring account: Tagesgeldkonto \n" +
@@ -255,17 +261,17 @@ public class AccountController {
                                         addTransaction(transaction2);
                                         accountService.transferAmount(accountNo, destAccountNo, amount);
                                         return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Transferring account is reference account of receiving account. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
-                                                "Transferring account (reference account) with account number \"" + accountNo + "\":\n" +
+                                                "Transferring account (reference account, account number: " + accountNo + "):\n" +
                                                 "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
                                                 "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
-                                                "Receiving account with account number \"" + destAccountNo + "\":\n" +
+                                                "Receiving account (account number: " + destAccountNo + "):\n" +
                                                 "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
                                                 "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
                                     } else
                                         return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
                                                 "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
-                                                "Current balance of transferring account (reference account) with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                                "Current balance of receiving account with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
+                                                "Current balance of transferring account (reference account, account number: " + accountNo + ", name: "+account1.get().getFirstName()+" "+account1.get().getLastName()+"): " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                                "Current balance of receiving account (account number: " + destAccountNo + ",name: "+account2.get().getFirstName()+" "+account2.get().getLastName()+"): " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
                                                 "Amount is bigger than current balance of transferring account.");
                                 } else
                                     return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Transfer failed. Account type of receiving account: Tagesgeldkonto \n" +
@@ -280,17 +286,17 @@ public class AccountController {
                                 addTransaction(transaction2);
                                 accountService.transferAmount(accountNo, destAccountNo, amount);
                                 return ResponseEntity.status(HttpStatus.ACCEPTED).body("Transfer success. Transferred amount: " + Math.round(amount * 100.0) / 100.0 + "€\n\n" +
-                                        "Transferring account with account number \"" + accountNo + "\":\n" +
+                                        "Transferring account  (account number: " + accountNo + "):\n" +
                                         "Previous balance: " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
                                         "Current balance: " + Math.round((account1.get().getBalanceInEuro() - amount) * 100.0) / 100.0 + "€\n\n" +
-                                        "Receiving account with account number \"" + destAccountNo + "\":\n" +
+                                        "Receiving account (account number " + destAccountNo + "):\n" +
                                         "Previous balance: " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
                                         "Current balance: " + Math.round((account2.get().getBalanceInEuro() + amount) * 100.0) / 100.0 + "€");
                             } else
                                 return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
                                         "Requested amount for transfer: " + Math.round(amount * 100.0 / 100.0) + "€\n\n" +
-                                        "Current balance of transferring account with account number \"" + accountNo + "\": " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
-                                        "Current balance of receiving account with account number \"" + destAccountNo + "\": " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
+                                        "Current balance of transferring account (account number: " + accountNo + "): " + Math.round(account1.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n" +
+                                        "Current balance of receiving account (account number: " + destAccountNo + "): " + Math.round(account2.get().getBalanceInEuro() * 100.0) / 100.0 + "€\n\n" +
                                         "Amount is bigger than current balance of transferring account.");
                         }
 
@@ -300,17 +306,17 @@ public class AccountController {
                 }
                 if (account1.get().getAccountType().equals("Tagesgeldkonto")) {
                     return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
-                            "The receiving account with account number " + destAccountNo + " does not exist.\n" +
-                            "The transferring account with account number " + accountNo + " is not allowed to transfer or receive money (only allowed with reference account (" + account1.get().getReferenceAccount() + ").\n Account type: \"" + account1.get().getAccountType() + "\".");
+                            "The receiving account (account number: " + destAccountNo + ") does not exist.\n" +
+                            "The transferring account (account number: " + accountNo + ") is not allowed to transfer or receive money (only allowed with reference account (account number: " + account1.get().getReferenceAccount() + ").\n Account type: \"" + account1.get().getAccountType() + "\".");
                 } else
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The receiving account with account number " + destAccountNo + " does not exist.");
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The receiving account (account number: " + destAccountNo + ") does not exist.");
             } else if (account2.isPresent()) {
                 if (account2.get().getAccountType().equals("Tagesgeldkonto")) {
                     return ResponseEntity.status(HttpStatus.CONFLICT).body("Transfer failed.\n" +
-                            "The transferring account with account number " + accountNo + " does not exist.\n" +
-                            "The receiving account with account number " + destAccountNo + " is not allowed to transfer or receive money (only allowed with reference account (" + account2.get().getReferenceAccount() + ").\n Account type: \"" + account2.get().getAccountType() + "\".");
+                            "The transferring account (account number: " + accountNo + ") does not exist.\n" +
+                            "The receiving account (account number: " + destAccountNo + ") is not allowed to transfer or receive money (only allowed with reference account (account number: " + account2.get().getReferenceAccount() + ").\n Account type: \"" + account2.get().getAccountType() + "\".");
                 } else
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The transferring account with account number " + accountNo + " does not exist.");
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. The transferring account (account number: " + accountNo + ") does not exist.");
             } else
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer failed. Accounts with account numbers \"" + accountNo + "\" and \"" + destAccountNo + "\" don't exist.");
 
@@ -341,13 +347,13 @@ public class AccountController {
 
         List<AccountResponse> account = accountService.findAccountByCustomerNo(aRequest.getCustomerNo());
 
-
+        Integer accountNo = UUID.randomUUID().hashCode() & Integer.MAX_VALUE;
         AccountResponse acct = new AccountResponse(
                 aRequest.getCustomerNo(),
                 enumRequest.getAccountType(),
                 firstName,
                 lastName,
-                UUID.randomUUID().hashCode() & Integer.MAX_VALUE,
+                accountNo,
                 (iban.getCountryCode() + iban.getCheckDigit() + iban.getBban()).replaceAll("(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w\\w\\w)(\\w\\w)", "$1 $2 $3 $4 $5 $6"),
                 0.0,
                 LocalDate.now(),
@@ -368,7 +374,9 @@ public class AccountController {
 //        Erstelle Girokonto wenn Kunde mindestens 18 ist
             else if (enumRequest.getAccountType() == "Girokonto" && age >= 18) {
                 accountService.createAccount(acct);
-                return ResponseEntity.status(HttpStatus.OK).body("Account for customer " + firstName + " created.");
+                return ResponseEntity.status(HttpStatus.OK).body("Account for customer (customer number: "+aRequest.getCustomerNo()+", name: " + firstName +" "+lastName+ ", age: "+age+") created.\n" +
+                        "Account number: "+accountNo+"\n" +
+                        "Account type: "+enumRequest.getAccountType());
             }
 
 
@@ -380,7 +388,9 @@ public class AccountController {
 //        Erstelle Schülerkonto wenn Kunde mindestens 7 und höchstens 17 Jahre ist
             else if (enumRequest.getAccountType() == "Schülerkonto" && age < 18 && age >= 7) {
                 accountService.createAccount(acct);
-                return ResponseEntity.status(HttpStatus.OK).body("Account for customer " + firstName + " created.");
+                return ResponseEntity.status(HttpStatus.OK).body("Account for customer (customer number: "+aRequest.getCustomerNo()+", name: " + firstName +" "+lastName+ ", age: "+age+") created.\n" +
+                        "Account number: "+accountNo+"\n" +
+                        "Account type: "+enumRequest.getAccountType());
             }
 //        Erstelle kein Schülerkonto wenn Kunde unter 7 oder mindestens 18 Jahre ist
             else if (enumRequest.getAccountType() == "Schülerkonto" && age >= 18 || enumRequest.getAccountType() == "Schülerkonto" && age < 7) {
@@ -392,16 +402,12 @@ public class AccountController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Reference account missing!");
             } else if (enumRequest.getAccountType() == "Tagesgeldkonto" && aRequest.getReferenceAccount() != 0) {
 
-//                System.out.println(account.size());
+
                 for (int i = 0; i < account.size(); i++) {
-//                    System.out.println(enumRequest.getAccountType());
-//                    System.out.println(aRequest.getReferenceAccount());
-//                    System.out.println(aRequest.getCustomerNo());
-//                    System.out.println(account.get(i).getAccountType());
-//                    System.out.println(account.get(i).getAccountNo());
+
                     if (account.get(i).getAccountNo().equals(aRequest.getReferenceAccount()) && account.get(i).getAccountType().equals("Girokonto")) {
                         accountService.createAccount(acct);
-                        return ResponseEntity.status(HttpStatus.OK).body("Account (" + enumRequest.getAccountType() + ") for customer " + firstName + " created. Reference account is account with account number: " + account.get(i).getAccountNo());
+                        return ResponseEntity.status(HttpStatus.OK).body("Account (" + enumRequest.getAccountType() + ") for customer (customer number: "+aRequest.getCustomerNo()+", name: " + firstName +" "+lastName+ ") created. Reference account is account with account number: " + account.get(i).getAccountNo());
                     } else if ((i + 1) == account.size()) {
                         return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not create account \"" + enumRequest.getAccountType() + "\". Possible reasons: \n\n" +
                                 "- Reference account (" + aRequest.getReferenceAccount() + ") does not exist\n" +
@@ -411,7 +417,7 @@ public class AccountController {
                 }
             }
         } else
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer (" + aRequest.getCustomerNo() + ") does not exist.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer (customer number: " + aRequest.getCustomerNo() + ") does not exist.");
         return null;
     }
 
@@ -430,17 +436,18 @@ public class AccountController {
             if (credit == null) {
                 if (account.get().getBalanceInEuro() == 0.0) {
                     accountService.deleteByAccountNo(accountNo);
-                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Account with account number " + accountNo + " deleted.");
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).body("Account (account number: " + accountNo + ", name: "+account.get().getFirstName()+" "+account.get().getLastName()+") deleted.");
                 } else
-                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not delete. Balance of account with account number " + accountNo + " is not zero.");
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not delete. Balance of account (account number: " + accountNo + ") is not zero.");
             } else
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not delete. Account with account number " + accountNo + " still has ongoing credits.");
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Could not delete. Account (account number: " + accountNo + ",name: "+account.get().getFirstName()+" "+account.get().getLastName()+") still has ongoing credits.");
 
         } else
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Could not delete. Account with account number " + accountNo + " does not exist.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Could not delete. Account (account number: " + accountNo + ") does not exist.");
 
     }
 
+    @Hidden
     @Operation(summary = "Delete all accounts of a customer")
     @DeleteMapping("/accounts/customer-accounts/{customerNo}")
     public ResponseEntity deleteAccountsofCustomer(
@@ -451,7 +458,7 @@ public class AccountController {
 
 
         if (account.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer (" + customerNo + ") has no accounts.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer (customer number: " + customerNo + ") has no accounts.");
         } else {
             List<Integer> accountNo = accountService.getAccountNoOfCustomerAccounts(customerNo);
             for (int i = 0; i < accountNo.size(); i++) {
@@ -470,7 +477,7 @@ public class AccountController {
             if (account.isEmpty()) {
                 return null;
             }
-            return ResponseEntity.status(HttpStatus.OK).body("All accounts of customer (" + customerNo + ") with zero balance and zero ongoing credits deleted.");
+            return ResponseEntity.status(HttpStatus.OK).body("All accounts of customer (customer number: " + customerNo + ") with zero balance and zero ongoing credits deleted.");
         }
     }
 
