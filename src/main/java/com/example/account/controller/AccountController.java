@@ -106,6 +106,14 @@ public class AccountController {
     }
 
     @Hidden
+    @GetMapping("/accounts/{accountNo}/accountType")
+    public String getAccountType(
+            @PathVariable Integer accountNo
+    ){
+        return accountService.getAccountType(accountNo);
+    }
+
+    @Hidden
     @GetMapping("/accounts/{accountNo}/balance")
     public ResponseEntity<Double> getBalanceInEuro(
             @PathVariable Integer accountNo

@@ -114,4 +114,8 @@ public class AccountService {
     }
     public List<Double> getBalanceOfCustomerAccounts(Integer customerNo) {
         return accountRepository.getBalanceOfCustomerAccounts(customerNo);}
+
+    public String getAccountType(Integer accountNo) {
+        return accountRepository.findAccountType(accountNo);
+    }
 }
